@@ -10,5 +10,5 @@ If you wish to use this without incident you will need to create an anaconda env
 `FRC_AI.yml`
 2. You can then generate a new environment by running 
 ```shell script
-conda env create -f=env.yml
+conda env create -f=FRC_AI.yml
 ```

@@ -9,6 +9,7 @@ import math
 import arcade
 import pymunk
 
+from CollisionTypes import CollisionType
 
 class PhysicsSprite(arcade.Sprite):
     def __init__(self, pymunk_shape, filename):
@@ -127,15 +128,57 @@ class CircleSprite(PhysicsSprite):
 
 class BoxSprite(PhysicsSprite):
     """Creates A Box Physics Sprite"""
-    def __init__(self, pymunk_shape, filename, width, height):
+    def __init__(self, bounding_box, filename, width, height):
         """
         Create a new Box Sprite that inherits from the PhysicsSprite class
 
-        :param pymunk_shape: Bounding box of the object
+        :param bounding_box: Bounding box of the object
         :param filename: Path to sprite
         :param width: Width of the cube
         :param height: Height of the cube
         """
-        super().__init__(pymunk_shape, filename)
+        super().__init__(bounding_box, filename)
         self.width = width
         self.height = height
+
+
+class LineHandler:
+    """Allows for the creation and management of many different line segments"""
+
+    def __init__(self, physics_space):
+        """
+        Create a new LineSegments class and make a list to hold different line segments
+
+        :param physics_space: Reference to the physics space that these lines will be created within
+        """
+
+        self.lines = []
+        self.physics_space = physics_space
+
+    def createLine(self, body_type, collision_type: CollisionType, first_endpoint: tuple, second_endpoint: tuple, thickness):
+        """
+        Create a new line and add it to the list of lines
+
+        :param body_type: The physical property of the line, Static or Dynamic
+        :param collision_type: The type of collision the line should register if it collides with another object
+        :param first_endpoint: The first coordinate of the line segment
+        :param second_endpoint: The second coordinate of the line segment
+        :param thickness: The thickness of the line
+        :return: None
+        """
+
+        # Physical body of the line segment
+        physics_body = pymunk.Body(body_type=body_type)
+
+        # Create the line segment with the given parameters
+        line_segment = pymunk.Segment(physics_body, [first_endpoint[0], first_endpoint[1]], [second_endpoint[0], second_endpoint[1]], thickness)
+
+        # Set what kind of collision it should register
+        line_segment.collision_type = collision_type.value
+
+        # Add the line to the physics simulation and finally add it to the list of lines in the simulation
+        self.physics_space.add(line_segment)
+        self.lines.append(line_segment)
+
+
+

@@ -12,7 +12,7 @@ import pymunk
 from CollisionTypes import CollisionType
 
 class PhysicsSprite(arcade.Sprite):
-    def __init__(self, pymunk_shape, filename):
+    def __init__(self, bounding_box: pymunk.shapes.Poly, filename):
         """
         Creates a new physics object
 
@@ -20,8 +20,8 @@ class PhysicsSprite(arcade.Sprite):
         :param filename: Path to the displayed sprite
         """
 
-        super().__init__(filename, center_x=pymunk_shape.body.position.x, center_y=pymunk_shape.body.position.y)
-        self.pymunk_shape = pymunk_shape
+        super().__init__(filename, center_x=bounding_box.body.position.x, center_y=bounding_box.body.position.y)
+        self.bounding_box = bounding_box
 
     def apply_impulse(self, impulse, point, is_world):
         """
@@ -34,28 +34,28 @@ class PhysicsSprite(arcade.Sprite):
         """
 
         if is_world:
-            self.pymunk_shape.body.apply_impulse_at_world_point(tuple(impulse), point=tuple(point))
+            self.bounding_box.body.apply_impulse_at_world_point(tuple(impulse), point=tuple(point))
         else:
-            self.pymunk_shape.body.apply_impulse_at_local_point(tuple(impulse), point=tuple(point))
+            self.bounding_box.body.apply_impulse_at_local_point(tuple(impulse), point=tuple(point))
 
     def get_body(self):
 
         """Gets information regarding the body that is currently in use"""
-        return self.pymunk_shape.body
+        return self.bounding_box.body
 
     def get_shape(self):
         """Get the physics shape"""
-        return self.pymunk_shape
+        return self.bounding_box
 
     def get_position(self):
 
         """Gets the current position of the physics body"""
-        return tuple(self.pymunk_shape.body.position)
+        return tuple(self.bounding_box.body.position)
 
     def get_local_position(self):
         """Converts World Space Coordinated To Local Coordinates"""
 
-        return tuple(self.get_body().world_to_local(self.pymunk_shape.body.position))
+        return tuple(self.get_body().world_to_local(self.bounding_box.body.position))
 
     def set_position(self, x, y):
         """
@@ -66,15 +66,15 @@ class PhysicsSprite(arcade.Sprite):
         :return: None
         """
 
-        self.pymunk_shape.body.position = pymunk.Vec2d(x, y)
+        self.bounding_box.body.position = pymunk.Vec2d(x, y)
 
-    def get_rotations(self):
+    def get_rad_angle(self):
         """
         Gets the number of rotations of the body in radians, NOTE: Use get_angle for an angle from 0-360
 
         :return: Number of rotations in radians
         """
-        return self.pymunk_shape.body.angle
+        return self.bounding_box.body.angle
 
     def get_angle(self):
         """
@@ -82,9 +82,7 @@ class PhysicsSprite(arcade.Sprite):
 
         :return: The current angle of the object
         """
-        angle = math.degrees(self.get_rotations())
-
-        angle = angle % 360
+        angle = math.degrees(self.get_rad_angle())
 
         return angle
 
@@ -95,7 +93,7 @@ class PhysicsSprite(arcade.Sprite):
         :param angle: The new angle to set (DEGREES)
         :return: None
         """
-        self.pymunk_shape.body.angle = (angle/360)
+        self.bounding_box.body.angle = (angle/360)
 
     def get_velocity(self):
         """
@@ -104,16 +102,18 @@ class PhysicsSprite(arcade.Sprite):
         :return: Velocity
         """
 
-        return tuple(self.pymunk_shape.body.velocity)
+        return tuple(self.bounding_box.body.velocity)
 
 
     def set_velocity(self, x_vel, y_vel):
         """Sets a velocity on the body"""
-        self.pymunk_shape.body.velocity = pymunk.Vec2d(x_vel, y_vel)
+
+        self.bounding_box.body.velocity = pymunk.Vec2d(x_vel, y_vel)
 
 
 class CircleSprite(PhysicsSprite):
     """Creates a Circular Physics Sprite"""
+
     def __init__(self, pymunk_shape, filename):
         """
         Create a new Circular Sprite that inherits from the PhysicsSprite class
@@ -128,6 +128,7 @@ class CircleSprite(PhysicsSprite):
 
 class BoxSprite(PhysicsSprite):
     """Creates A Box Physics Sprite"""
+
     def __init__(self, bounding_box, filename, width, height):
         """
         Create a new Box Sprite that inherits from the PhysicsSprite class

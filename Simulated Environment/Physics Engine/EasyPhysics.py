@@ -9,14 +9,16 @@ import pymunk
 from LowLevelPhysics import *
 from CollisionTypes import CollisionType
 
-# Gravity to be used in the simulated environment, its None because dampening is used to regulate object speed
+# Gravity to be used in the simulated environment, its None because damping is used to regulate object speed
 GRAVITY = (0, 0)
+
+STEP_LENGTH: float = 0.0
 
 
 class PhysicsEnvironment:
     """Class to manager the overall physics environment"""
 
-    def __init__(self, window_width, window_height, simulation_accuracy, step_length):
+    def __init__(self, window_width, window_height, simulation_accuracy, step_length: float):
         """
         Create general variables that will be used throughout the class
 
@@ -40,7 +42,9 @@ class PhysicsEnvironment:
         self.window_width = window_width
         self.window_height = window_height
 
-        self.step_length = step_length
+        # Set the step length globally
+        global STEP_LENGTH
+        STEP_LENGTH = step_length
 
     def createPhysicsSpace(self, simulation_accuracy):
         """
@@ -65,7 +69,7 @@ class PhysicsEnvironment:
         :return: None
         """
 
-        self.physics_space.step(self.step_length)
+        self.physics_space.step(STEP_LENGTH)
 
     def createCollisionHandler(self, firstCollisionType: CollisionType, secondCollisionType: CollisionType, callback):
         """
@@ -179,7 +183,7 @@ class DynamicPhysics:
     def __init__(self, physics_environment: PhysicsEnvironment):
         self.physics_environment = physics_environment
 
-    def createDynamicRectangularObject(self, width, height, mass, friction, dampening, initialX, initialY,
+    def createDynamicRectangularObject(self, width, height, mass, friction, damping, initialX, initialY,
                                        collision_type: CollisionType, sprite_path):
         """
         Create a new dynamic physics object
@@ -188,7 +192,7 @@ class DynamicPhysics:
         :param height: Height of object (PX)
         :param mass: The mass of the object
         :param friction: How much friction the object should create
-        :param dampening: How quickly the velocity should fall off when it is no longer being applied
+        :param damping: How quickly the velocity should fall off when it is no longer being applied (Lower numbers = more damping)
         :param initialX: Object's initial X coordinate
         :param initialY: Object's initial Y coordinate
         :param collision_type: What kind of collision the object has
@@ -226,13 +230,14 @@ class DynamicPhysics:
                                          sprite_path=sprite_path,
                                          width=width,
                                          height=height,
-                                         dampening=dampening)
+                                         damping=damping)
         return completed_object
+
 
 class DynamicObject(BoxSprite):
     """Inherits from the Box Sprite to simply add more functionality to that object"""
 
-    def __init__(self, bounding_box, sprite_path, width, height, dampening):
+    def __init__(self, bounding_box: pymunk.shapes.Poly, sprite_path, width, height, damping):
         """
         Create a new object
 
@@ -240,17 +245,82 @@ class DynamicObject(BoxSprite):
         :param sprite_path: Path to the sprite being used
         :param width: Width of the object
         :param height: Height of the object
-        :param dampening: The amount of dampening used to slow down and object
+        :param damping: The amount of damping used to slow down and object
         """
 
         super().__init__(bounding_box=bounding_box, filename=sprite_path, width=width, height=height)
-        self.dampening = dampening
+        self.damping = damping
 
-    def get_dampening(self):
+    def get_damping(self):
         """
-        Get the amount of dampening to be applied to the object
+        Get the amount of damping to be applied to the object
 
-        :return: Dampening amount
+        :return: damping amount
         """
 
-        return self.dampening
+        return self.damping
+
+    def apply_forward_impulse(self, impulse: tuple, point: tuple, is_world: bool):
+        """
+        Apply A Certain Impulse To the Forward Direction of the Object And Move The Object There
+
+        :param impulse: How much force to apply
+        :param point: The point at which to apply the force to the object
+        :param is_world: Whether or not the the point is relative to the world or the object
+
+        :return: None
+        """
+
+        # Use the parent method to just apply the force to the forward direction of the object
+        super().apply_impulse(impulse=(0, impulse),
+                              point=point,
+                              is_world=is_world)
+
+        # Update the entire player object to the position of the physics object
+        x, y = self.get_position()  # Get position of player and split to X and Y
+        self.center_x = x  # Set the values gotten from get_position and set them to the total object
+        self.center_y = y
+        self.angle = self.get_angle()  # Set the angle of the object
+
+    def apply_damping(self):
+        """
+        Applies a certain amount of damping to the object to slow it down
+
+        :return: None
+        """
+
+        pymunk.Body.update_velocity(body=self.bounding_box,
+                                    gravity=GRAVITY,
+                                    damping=self.damping,
+                                    dt=STEP_LENGTH)
+
+    def stop_object(self):
+        """
+        Applies an absurdly high amount of damping instantly to stop the object from moving
+
+        :return: None
+        """
+
+        pymunk.Body.update_velocity(body=self.bounding_box,
+                                    gravity=GRAVITY,
+                                    damping=0.0000000000000000000000000001,
+                                    dt=0)
+
+    def impulse_move(self, impulse: float, point: tuple, isWorld: bool):
+        """
+        Move the object by applying an impulse and then applying damping
+
+        :param impulse: Force to apply to the forward vector of the object
+        :param point: The point on the object where it is applied
+        :param isWorld: Whether or not that point is in local or world space
+
+        :return: None
+        """
+
+        # Apply initial force
+        self.apply_forward_impulse(impulse=(0, impulse),
+                                   point=point,
+                                   is_world=isWorld)
+
+        # Slow down the object when force is not being applied
+        self.apply_damping()

@@ -34,9 +34,9 @@ class PhysicsSprite(arcade.Sprite):
         """
 
         if is_world:
-            self.bounding_box.body.apply_impulse_at_world_point(tuple(impulse), point=tuple(point))
+            self.bounding_box.body.apply_impulse_at_world_point(impulse, point=point)
         else:
-            self.bounding_box.body.apply_impulse_at_local_point(tuple(impulse), point=tuple(point))
+            self.bounding_box.body.apply_impulse_at_local_point(impulse, point=point)
 
     def get_body(self):
 
@@ -180,6 +180,26 @@ class LineHandler:
         # Add the line to the physics simulation and finally add it to the list of lines in the simulation
         self.physics_space.add(line_segment)
         self.lines.append(line_segment)
+
+    def drawLines(self):
+        """Draw all the lines within the lines array"""
+
+        for line in self.lines:
+
+            # The physical body of the line
+            line_body = line.body
+
+            # Get the start and end point of the line
+            startPoint = line_body.position + line.a.rotated(line_body.angle)
+            endPoint = line_body.position + line.b.rotated(line_body.angle)
+
+            # Draw the line using the arcade library
+            arcade.draw_line(start_x=startPoint.x,
+                             start_y=startPoint.y,
+                             end_x=endPoint.x,
+                             end_y=endPoint.y,
+                             color=arcade.color.DARK_GRAY,
+                             line_width=1)
 
 
 

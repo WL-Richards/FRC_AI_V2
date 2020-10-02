@@ -71,6 +71,11 @@ class PhysicsEnvironment:
 
         self.physics_space.step(STEP_LENGTH)
 
+    def draw_static_objects(self):
+        """Draw all elements in the static sprite list"""
+
+        self.sprite_list.draw()
+
     def createCollisionHandler(self, firstCollisionType: CollisionType, secondCollisionType: CollisionType, callback):
         """
         Create a new collision handler watching for specific collisions
@@ -153,21 +158,21 @@ class StaticPhysics:
                                                  first_endpoint=(0, self.physic_environment.window_height),
                                                  second_endpoint=(self.physic_environment.window_width,
                                                                   self.physic_environment.window_height),
-                                                 thickness=1)
+                                                 thickness=2)
 
         # Create the top bound
         self.physic_environment.lines.createLine(body_type=pymunk.Body.STATIC,
                                                  collision_type=CollisionType.STATIC_OBJECT,
                                                  first_endpoint=(0, 0),
                                                  second_endpoint=(self.physic_environment.window_width, 0),
-                                                 thickness=1)
+                                                 thickness=2)
 
         # Create the right side bound
         self.physic_environment.lines.createLine(body_type=pymunk.Body.STATIC,
                                                  collision_type=CollisionType.STATIC_OBJECT,
                                                  first_endpoint=(0, 0),
                                                  second_endpoint=(0, self.physic_environment.window_height),
-                                                 thickness=1)
+                                                 thickness=2)
 
         # Create the left side bound
         self.physic_environment.lines.createLine(body_type=pymunk.Body.STATIC,
@@ -175,19 +180,21 @@ class StaticPhysics:
                                                  first_endpoint=(self.physic_environment.window_width, 0),
                                                  second_endpoint=(self.physic_environment.window_width,
                                                                   self.physic_environment.window_height),
-                                                 thickness=1)
+                                                 thickness=2)
+
+        # Draw the lines to the screen
+        self.physic_environment.lines.drawLines()
 
 
 class DynamicPhysics:
 
-    def __init__(self, physics_environment: PhysicsEnvironment):
-        self.physics_environment = physics_environment
-
-    def createDynamicRectangularObject(self, width, height, mass, friction, damping, initialX, initialY,
+    @staticmethod
+    def createDynamicRectangularObject(physics_environment: PhysicsEnvironment, width, height, mass, friction, damping, initialX, initialY,
                                        collision_type: CollisionType, sprite_path):
         """
         Create a new dynamic physics object
 
+        :param physics_environment: Reference to the current physics environment
         :param width: Width of object (PX)
         :param height: Height of object (PX)
         :param mass: The mass of the object
@@ -223,7 +230,7 @@ class DynamicPhysics:
         bounding_box.collision_type = collision_type.value
 
         # Add the object to the physics space
-        self.physics_environment.physics_space.add(physics_body, bounding_box)
+        physics_environment.physics_space.add(physics_body, bounding_box)
 
         # Finally create the entire object with a sprite
         completed_object = DynamicObject(bounding_box=bounding_box,
@@ -260,7 +267,7 @@ class DynamicObject(BoxSprite):
 
         return self.damping
 
-    def apply_forward_impulse(self, impulse: tuple, point: tuple, is_world: bool):
+    def apply_forward_impulse(self, impulse: float, point: tuple, is_world: bool):
         """
         Apply A Certain Impulse To the Forward Direction of the Object And Move The Object There
 
@@ -282,17 +289,17 @@ class DynamicObject(BoxSprite):
         self.center_y = y
         self.angle = self.get_angle()  # Set the angle of the object
 
-    def apply_damping(self):
+    def apply_damping(self, dt):
         """
         Applies a certain amount of damping to the object to slow it down
 
         :return: None
         """
 
-        pymunk.Body.update_velocity(body=self.bounding_box,
+        pymunk.Body.update_velocity(body=self.bounding_box.body,
                                     gravity=GRAVITY,
                                     damping=self.damping,
-                                    dt=STEP_LENGTH)
+                                    dt=dt)
 
     def stop_object(self):
         """
@@ -307,6 +314,7 @@ class DynamicObject(BoxSprite):
                                     dt=0)
 
     def impulse_move(self, impulse: float, point: tuple, isWorld: bool):
+
         """
         Move the object by applying an impulse and then applying damping
 
@@ -318,9 +326,14 @@ class DynamicObject(BoxSprite):
         """
 
         # Apply initial force
-        self.apply_forward_impulse(impulse=(0, impulse),
+        self.apply_forward_impulse(impulse=impulse,
                                    point=point,
                                    is_world=isWorld)
 
-        # Slow down the object when force is not being applied
-        self.apply_damping()
+
+
+class RaycastHandler:
+    """Handler to contain many raycasts to get distances to objects and other information"""
+
+    def __init__(self):
+        pass

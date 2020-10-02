@@ -7,6 +7,7 @@
       <sourceFolder url="file://$MODULE_DIR$/Simulated Environment/Physics Engine" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/Simulated Environment/Physics Engine/Unit Tests" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/Simulated Environment/Physics Engine/Collision Handling" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Simulated Environment/Virtual Environment" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

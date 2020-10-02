@@ -5,3 +5,4 @@ class Keymap(Enum):
     S = 115
     Up = 65362
     Down = 65364
+    Esc = 65307

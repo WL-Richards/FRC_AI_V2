@@ -4,7 +4,7 @@ __author__ = "Will Richards"
 __copyright__ = "Copyright 2020, AEMBOT"
 
 import arcade
-import os
+import os, signal, threading
 from Keymap import Keymap
 
 from EasyPhysics import *
@@ -61,8 +61,6 @@ class VirtualEnvironment(arcade.Window):
         # Which action is being taken
         self.movement_values = [False, False, False, False]
 
-        # Once all variables have been created start the environment
-        self.startEnvironment()
 
     def on_draw(self):
         """Called by the arcade lib when a draw call has been made"""
@@ -77,6 +75,12 @@ class VirtualEnvironment(arcade.Window):
 
 
     def on_key_press(self, symbol: int, modifiers: int):
+
+        # Just kill the program I don't care how
+        if symbol == Keymap.Esc.value:
+            arcade.close_window()
+            signal.pthread_kill(threading.current_thread().ident, signal.SIGKILL)
+
         # Forward
         if symbol == Keymap.W.value:
            self.movement_values[0] = True
@@ -145,6 +149,17 @@ class VirtualEnvironment(arcade.Window):
                                  point=(6, 0),
                                  isWorld=False)
 
+    def debug(self):
+        """Temporary Debug Method"""
+
+        #print("DEG: " + str(self.player.get_true_angle()))
+        #print("ROT: " + str(self.player.get_angle()))
+
     def startEnvironment(self):
+        """
+        Start the arcade simulation
+
+        :return: None
+        """
         arcade.run()
 

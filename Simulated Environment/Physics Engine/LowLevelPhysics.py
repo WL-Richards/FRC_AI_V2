@@ -23,6 +23,8 @@ class PhysicsSprite(arcade.Sprite):
         super().__init__(filename, center_x=bounding_box.body.position.x, center_y=bounding_box.body.position.y)
         self.bounding_box = bounding_box
 
+        self.rotational_offset = 0
+
     def apply_impulse(self, impulse, point, is_world):
         """
         Apply an impulse to a location on a sprite
@@ -68,7 +70,7 @@ class PhysicsSprite(arcade.Sprite):
 
         self.bounding_box.body.position = pymunk.Vec2d(x, y)
 
-    def get_rad_angle(self):
+    def get_rad_rotations(self):
         """
         Gets the number of rotations of the body in radians, NOTE: Use get_angle for an angle from 0-360
 
@@ -76,15 +78,46 @@ class PhysicsSprite(arcade.Sprite):
         """
         return self.bounding_box.body.angle
 
+    def get_rotations(self):
+        """
+        Gets the number of rotations of the body
+
+        :return: Number of rotations
+        """
+
+        return (self.bounding_box.body.angle / (2*math.pi))
+
     def get_angle(self):
+        """
+        Get the angle of the object taking into account the initial offset to a standard unit cirlce
+
+        :return: The angle world oriented angle
+        """
+
+        return ((self.get_rotations() * 360) + self.rotational_offset) % 360
+
+    def get_true_angle(self):
         """
         Get the angle of the object in terms of 0-360 degrees
 
         :return: The current angle of the object
         """
-        angle = math.degrees(self.get_rad_angle())
+        angle = math.degrees(self.get_rad_rotations())
+
+        angle = angle % 360
 
         return angle
+
+    def set_rotational_offset(self, offset):
+        """
+        Set the offset value to use for the rotations
+
+        :param offset: Angle in degrees
+
+        :return: None
+        """
+
+        self.rotational_offset = offset
 
     def set_angle(self, angle):
         """

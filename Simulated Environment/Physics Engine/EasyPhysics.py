@@ -287,7 +287,7 @@ class DynamicObject(BoxSprite):
         x, y = self.get_position()  # Get position of player and split to X and Y
         self.center_x = x  # Set the values gotten from get_position and set them to the total object
         self.center_y = y
-        self.angle = self.get_angle()  # Set the angle of the object
+        self.angle = self.get_true_angle()  # Set the angle of the object
 
     def apply_damping(self, dt):
         """

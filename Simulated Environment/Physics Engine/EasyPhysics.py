@@ -189,7 +189,8 @@ class StaticPhysics:
 class DynamicPhysics:
 
     @staticmethod
-    def createDynamicRectangularObject(physics_environment: PhysicsEnvironment, width, height, mass, friction, damping, initialX, initialY,
+    def createDynamicRectangularObject(physics_environment: PhysicsEnvironment, width, height, mass, friction, damping,
+                                       initialX, initialY,
                                        collision_type: CollisionType, sprite_path):
         """
         Create a new dynamic physics object
@@ -229,6 +230,8 @@ class DynamicPhysics:
         # The type of collision this object has
         bounding_box.collision_type = collision_type.value
 
+        bounding_box.filter = pymunk.ShapeFilter(categories=0b1)
+
         # Add the object to the physics space
         physics_environment.physics_space.add(physics_body, bounding_box)
 
@@ -257,6 +260,7 @@ class DynamicObject(BoxSprite):
 
         super().__init__(bounding_box=bounding_box, filename=sprite_path, width=width, height=height)
         self.damping = damping
+        self.sprite_path = sprite_path
 
     def get_damping(self):
         """
@@ -266,6 +270,9 @@ class DynamicObject(BoxSprite):
         """
 
         return self.damping
+
+    def get_instance(self):
+        return self
 
     def apply_forward_impulse(self, impulse: float, point: tuple, is_world: bool):
         """
@@ -314,7 +321,6 @@ class DynamicObject(BoxSprite):
                                     dt=0)
 
     def impulse_move(self, impulse: float, point: tuple, isWorld: bool):
-
         """
         Move the object by applying an impulse and then applying damping
 
@@ -331,9 +337,163 @@ class DynamicObject(BoxSprite):
                                    is_world=isWorld)
 
 
-
 class RaycastHandler:
+    from AgentController import AgentController
+
+    # Length of the rays
+    RAYCAST_LENGTH = 150
+
     """Handler to contain many raycasts to get distances to objects and other information"""
 
-    def __init__(self):
-        pass
+    def __init__(self, physics_environment: PhysicsEnvironment, player: AgentController):
+        from AgentController import AgentController
+
+        self.ray_casts = []
+
+        self.physics_environment = physics_environment
+        self.player: AgentController = player
+
+    def create_raycast(self, start: tuple, end: tuple, radius):
+        """
+        Create a single raycast and the list
+
+        :param physics_environment: Reference to the environment
+        :param start: Start of the cast
+        :param end: End of the cast
+        :param radius: Radius around the cast to consider collided
+
+        :return: None
+        """
+
+        # Create a a generic raycast with the given information that ignores dynamic objects
+        ray = self.physics_environment.physics_space.segment_query_first(start=start,
+                                                                         end=end,
+                                                                         radius=radius,
+                                                                         shape_filter=pymunk.ShapeFilter(mask=pymunk.ShapeFilter.ALL_MASKS ^ 0b1))
+        ray_info = (ray, start, end, radius)
+
+        # Add the ray to the list
+        self.ray_casts.append(ray_info)
+
+    def calculate_multiraycast(self):
+        """
+        Create a ring of raycasts around the object
+
+        :return: None
+        """
+
+        # Create raycast at 90 degrees
+        self.create_raycast(start=(self.player.get_position().x, self.player.get_position().y),
+                            end=((self.player.get_position().x + (
+                                        math.cos(math.radians(self.player.get_angle())) * self.RAYCAST_LENGTH)),
+                                 (self.player.get_position().y + (
+                                             math.sin(math.radians(self.player.get_angle())) * self.RAYCAST_LENGTH))),
+                            radius=2)
+
+        # Create raycast at 270 degrees
+        self.create_raycast(start=(self.player.get_position().x, self.player.get_position().y),
+                            end=((self.player.get_position().x + (
+                                        math.cos(math.radians(self.player.get_angle())) * -self.RAYCAST_LENGTH)),
+                                 (self.player.get_position().y + (
+                                             math.sin(math.radians(self.player.get_angle())) * -self.RAYCAST_LENGTH))),
+                            radius=2)
+
+        # Create raycast at 180 degrees
+        self.create_raycast(start=(self.player.get_position().x, self.player.get_position().y),
+                            end=(
+                                (self.player.get_position().x + (math.cos(
+                                    math.radians(self.player.get_angle() + 90)) * self.RAYCAST_LENGTH)),
+                                (self.player.get_position().y + (math.sin(
+                                    math.radians(self.player.get_angle() + 90)) * self.RAYCAST_LENGTH))),
+                            radius=2)
+
+        # Create raycast at 360/0
+        self.create_raycast(start=(self.player.get_position().x, self.player.get_position().y),
+                            end=(
+                                (self.player.get_position().x + (
+                                        math.cos(math.radians(self.player.get_angle() + 90)) * -self.RAYCAST_LENGTH)),
+                                (self.player.get_position().y + (
+                                        math.sin(math.radians(self.player.get_angle() + 90)) * -self.RAYCAST_LENGTH))),
+                            radius=2)
+
+        # Create raycast at 45
+        self.create_raycast(start=(self.player.get_position().x, self.player.get_position().y),
+                            end=(
+                                (self.player.get_position().x + (
+                                        math.cos(math.radians(self.player.get_angle() - 45)) * self.RAYCAST_LENGTH)),
+                                (self.player.get_position().y + (
+                                        math.sin(math.radians(self.player.get_angle() - 45)) * self.RAYCAST_LENGTH))),
+                            radius=2)
+
+        # Create raycast at 225
+        self.create_raycast(start=(self.player.get_position().x, self.player.get_position().y),
+                            end=(
+                                (self.player.get_position().x + (
+                                        math.cos(math.radians(self.player.get_angle() - 45)) * -self.RAYCAST_LENGTH)),
+                                (self.player.get_position().y + (
+                                        math.sin(math.radians(self.player.get_angle() - 45)) * -self.RAYCAST_LENGTH))),
+                            radius=2)
+
+        # Create raycast at 135
+        self.create_raycast(start=(self.player.get_position().x, self.player.get_position().y),
+                            end=(
+                                (self.player.get_position().x + (
+                                        math.cos(math.radians(self.player.get_angle() + 45)) * self.RAYCAST_LENGTH)),
+                                (self.player.get_position().y + (
+                                        math.sin(math.radians(self.player.get_angle() + 45)) * self.RAYCAST_LENGTH))),
+                            radius=2)
+
+        # Create raycast at 315
+        self.create_raycast(start=(self.player.get_position().x, self.player.get_position().y),
+                            end=(
+                                (self.player.get_position().x + (
+                                        math.cos(math.radians(self.player.get_angle() + 45)) * -self.RAYCAST_LENGTH)),
+                                (self.player.get_position().y + (
+                                        math.sin(math.radians(self.player.get_angle() + 45)) * -self.RAYCAST_LENGTH))),
+                            radius=2)
+
+        """
+            0 - Top Ray
+            1 - Bottom Ray
+            2 - Left Ray
+            3 - Right Ray
+            4 - Upper Right Ray
+            5 - Bottom Right Ray
+            6 - Upper Left Ray
+            7 - Bottom Left Ray
+        """
+
+        # List to hold all distances from the
+        ray_hit_distances = [self.player.get_position().get_distance(self.ray_casts[0][0].point) if self.ray_casts[0][0] is not None else None,
+                             self.player.get_position().get_distance(self.ray_casts[1][0].point) if self.ray_casts[1][0] is not None else None,
+                             self.player.get_position().get_distance(self.ray_casts[2][0].point) if self.ray_casts[2][0] is not None else None,
+                             self.player.get_position().get_distance(self.ray_casts[3][0].point) if self.ray_casts[3][0] is not None else None,
+                             self.player.get_position().get_distance(self.ray_casts[4][0].point) if self.ray_casts[4][0] is not None else None,
+                             self.player.get_position().get_distance(self.ray_casts[5][0].point) if self.ray_casts[5][0] is not None else None,
+                             self.player.get_position().get_distance(self.ray_casts[6][0].point) if self.ray_casts[6][0] is not None else None,
+                             self.player.get_position().get_distance(self.ray_casts[7][0].point) if self.ray_casts[7][0] is not None else None]
+
+        # Clear rays from list after 8 have been created
+        if len(self.ray_casts) > 8:
+            self.ray_casts.clear()
+
+    def draw_raycasts(self):
+        """
+        Draw the raycasts to the screen to see if they are working correctly
+
+        :return: None
+        """
+
+        # Draw the raycast lines
+        for ray in self.ray_casts:
+            # Draw the line using the arcade library
+            arcade.draw_line(start_x=ray[1][0],
+                             start_y=ray[1][1],
+                             end_x=ray[2][0],
+                             end_y=ray[2][1],
+                             color=arcade.color.DARK_GRAY,
+                             line_width=1)
+
+            # Draw the hit point of the ray
+            if ray[0] is not None:
+                arcade.draw_point(ray[0].point.x, ray[0].point.y, arcade.color.RED, 10)

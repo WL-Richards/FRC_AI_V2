@@ -52,7 +52,7 @@ class PhysicsSprite(arcade.Sprite):
     def get_position(self):
 
         """Gets the current position of the physics body"""
-        return tuple(self.bounding_box.body.position)
+        return pymunk.Vec2d(self.bounding_box.body.position.x, self.bounding_box.body.position.y)
 
     def get_local_position(self):
         """Converts World Space Coordinated To Local Coordinates"""

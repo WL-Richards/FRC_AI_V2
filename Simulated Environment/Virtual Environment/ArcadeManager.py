@@ -3,18 +3,20 @@
 __author__ = "Will Richards"
 __copyright__ = "Copyright 2020, AEMBOT"
 
-import arcade
 import os, signal, threading
-from Keymap import Keymap
+from Keymapping.Keymap import Keymap
 
 from EasyPhysics import *
 from CollisionTypes import CollisionType
 from EnvironmentObjectManager import EnvironmentGameObjects
+from AgentController import AgentController
 
 # Create window parameters
 SCREEN_WIDTH = 450
 SCREEN_HEIGHT = 525
 WINDOW_TITLE = "AI FRC Drive Training"
+
+ENVIRONMENT_RUNNING = False
 
 # The speed to move the robot during non AI debugging
 TEST_CONTROL_SPEED = 35
@@ -41,22 +43,18 @@ class VirtualEnvironment(arcade.Window):
                                                       simulation_accuracy=45,
                                                       step_length=0.01)
 
-        # Create the player object with all the given parameters
-        self.player: DynamicObject = DynamicPhysics.createDynamicRectangularObject(physics_environment=self.physics_environment,
-                                                                                   width=50,
-                                                                                   height=60,
-                                                                                   mass=1.0,
-                                                                                   friction=0.9,
-                                                                                   damping=0.92,
-                                                                                   initialX=(SCREEN_WIDTH / 1.3),
-                                                                                   initialY=(SCREEN_HEIGHT / 7),
-                                                                                   collision_type=CollisionType.DYNAMIC_OBJECT,
-                                                                                   sprite_path="Player.png")
+        # Create the dynamic player object
+        self.player: AgentController = AgentController(physics_environment=self.physics_environment,
+                                                       screen_width=SCREEN_WIDTH,
+                                                       screen_height=SCREEN_HEIGHT)
 
         # Manager to manage all static objects in the simulation
         self.StaticObjectManager = EnvironmentGameObjects(physics_environment=self.physics_environment,
                                                           screen_width=SCREEN_WIDTH,
                                                           screen_height=SCREEN_HEIGHT)
+
+        self.raycast_handler = RaycastHandler(physics_environment=self.physics_environment,
+                                              player=self.player)
 
         # Which action is being taken
         self.movement_values = [False, False, False, False]
@@ -69,6 +67,9 @@ class VirtualEnvironment(arcade.Window):
         arcade.start_render()
 
         self.StaticObjectManager.draw_environment_objects()
+
+        # Draw the raycasts being cast
+        self.raycast_handler.draw_raycasts()
 
         # Draw the player object
         self.player.draw()
@@ -115,45 +116,15 @@ class VirtualEnvironment(arcade.Window):
 
         self.physics_environment.simulateStep()
 
-        self.control_player()
+        self.raycast_handler.calculate_multiraycast()
+        self.player.control(self.movement_values, TEST_CONTROL_SPEED)
         self.player.apply_damping(dt=delta_time)
 
-    def control_player(self):
-        """
-        Set the power values
-
-        :return:
-        """
-        left_power = 0
-        right_power = 0
-
-        if self.movement_values[0]:
-            right_power = TEST_CONTROL_SPEED
-
-        if self.movement_values[1]:
-            left_power = TEST_CONTROL_SPEED
-
-        if self.movement_values[2]:
-            right_power = -TEST_CONTROL_SPEED
-
-        if self.movement_values[3]:
-            left_power = -TEST_CONTROL_SPEED
-
-        # Move Right Side
-        self.player.impulse_move(impulse=right_power,
-                                 point=(-6, 0),
-                                 isWorld=False)
-
-        # Move Left Side
-        self.player.impulse_move(impulse=left_power,
-                                 point=(6, 0),
-                                 isWorld=False)
 
     def debug(self):
         """Temporary Debug Method"""
+        pass
 
-        #print("DEG: " + str(self.player.get_true_angle()))
-        #print("ROT: " + str(self.player.get_angle()))
 
     def startEnvironment(self):
         """
@@ -162,4 +133,7 @@ class VirtualEnvironment(arcade.Window):
         :return: None
         """
         arcade.run()
+
+        global ENVIRONMENT_RUNNING
+        ENVIRONMENT_RUNNING = True
 

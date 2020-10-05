@@ -1,6 +1,7 @@
 from EasyPhysics import StaticPhysics, PhysicsEnvironment
 from CollisionTypes import CollisionType
 
+
 class EnvironmentGameObjects:
     """Manager for static objects within the scene"""
 
@@ -9,7 +10,7 @@ class EnvironmentGameObjects:
 
         # Create a new static object manager to manage all the game elements
         self.static_object_manager = StaticPhysics(physics_environment=self.environment)
-        
+
         self.screen_width = screen_width
         self.screen_height = screen_height
 
@@ -24,26 +25,30 @@ class EnvironmentGameObjects:
         # Create the cargo ship in the middle
         self.static_object_manager.createStaticRectangularObject(width=80,
                                                                  height=238,
-                                                                 initialX=(self.screen_width/2),
-                                                                 initialY=(self.screen_height/2),
+                                                                 initialX=(self.screen_width / 2),
+                                                                 initialY=(self.screen_height / 2),
                                                                  collision_type=CollisionType.STATIC_OBJECT,
                                                                  sprite_path="Cargo Ship.png")
         # Create the 4 rocket objects on the sides of the arena
         self.create_rocket_objects()
 
+        # Set constants so the goal can easily be moved
+        placement_station_x = self.screen_width / 1.2
+        placement_station_y = self.screen_height - 15
+
         # Create the placement station
         self.static_object_manager.createStaticRectangularObject(width=130,
                                                                  height=30,
-                                                                 initialX=(self.screen_width / 2.1),
-                                                                 initialY=(self.screen_height - 15),
+                                                                 initialX=placement_station_x,
+                                                                 initialY=placement_station_y,
                                                                  collision_type=CollisionType.STATIC_OBJECT,
                                                                  sprite_path="Placement.png")
 
         # Create the placement station goal
         self.static_object_manager.createStaticRectangularObject(width=30,
-                                                                 height= 12,
-                                                                 initialX=((self.screen_width / 2.1) + 1),
-                                                                 initialY=((self.screen_height - 15) - 18),
+                                                                 height=12,
+                                                                 initialX=(placement_station_x + 1),
+                                                                 initialY=(placement_station_y - 18),
                                                                  collision_type=CollisionType.GOAL_OBJECT,
                                                                  sprite_path="Placement_Goal.png")
 

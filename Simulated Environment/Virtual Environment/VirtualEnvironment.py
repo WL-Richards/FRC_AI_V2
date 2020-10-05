@@ -33,19 +33,25 @@ if __name__ == '__main__':
 
     print("Booting Environment Please Wait...")
 
-    # Wait for environment to boot
+    # Wait for environment to start before doing anything
     while not ENVIRONMENT_RUNNING:
         sleep(0.01)
 
-    # Set the initial rotation offset
-    env.player.set_rotational_offset(offset=90)
+    # Reset player
+    obs = env.reset()
 
     print("Environment Booted!")
 
+    # All Neural Network prediction done after this point
+
     while True:
-        sleep(0.5)
+        sleep(env.physics_environment.step_length)
+        obs, reward, done = env.step(action=(50,50))
 
-        # Calls to a debug method one level lower to allow for easy debugging
-        env.debug()
+        print("Observations: " + str(obs))
+        print("Reward: " + str(reward))
+        print("Done: " + str(done))
 
+        if done:
+            env.reset()
 

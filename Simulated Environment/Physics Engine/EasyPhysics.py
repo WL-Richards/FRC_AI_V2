@@ -5,9 +5,7 @@ High Level Physics Interface Meant To Be Used By The Environment Itself
 __author__ = "Will Richards"
 __copyright__ = "Copyright 2020, AEMBOT"
 
-import pymunk
 from LowLevelPhysics import *
-from CollisionTypes import CollisionType
 
 # Gravity to be used in the simulated environment, its None because damping is used to regulate object speed
 GRAVITY = (0, 0)
@@ -45,6 +43,7 @@ class PhysicsEnvironment:
         # Set the step length globally
         global STEP_LENGTH
         STEP_LENGTH = step_length
+        self.step_length = STEP_LENGTH
 
     def createPhysicsSpace(self, simulation_accuracy):
         """
@@ -240,14 +239,16 @@ class DynamicPhysics:
                                          sprite_path=sprite_path,
                                          width=width,
                                          height=height,
-                                         damping=damping)
+                                         damping=damping,
+                                         initialX=initialX,
+                                         initialY=initialY)
         return completed_object
 
 
 class DynamicObject(BoxSprite):
     """Inherits from the Box Sprite to simply add more functionality to that object"""
 
-    def __init__(self, bounding_box: pymunk.shapes.Poly, sprite_path, width, height, damping):
+    def __init__(self, bounding_box: pymunk.shapes.Poly, sprite_path, width, height, damping, initialX, initialY):
         """
         Create a new object
 
@@ -261,6 +262,8 @@ class DynamicObject(BoxSprite):
         super().__init__(bounding_box=bounding_box, filename=sprite_path, width=width, height=height)
         self.damping = damping
         self.sprite_path = sprite_path
+        self.initialX = initialX
+        self.initialY = initialY
 
     def get_damping(self):
         """
@@ -315,9 +318,9 @@ class DynamicObject(BoxSprite):
         :return: None
         """
 
-        pymunk.Body.update_velocity(body=self.bounding_box,
+        pymunk.Body.update_velocity(body=self.bounding_box.body,
                                     gravity=GRAVITY,
-                                    damping=0.0000000000000000000000000001,
+                                    damping=0.0000001,
                                     dt=0)
 
     def impulse_move(self, impulse: float, point: tuple, isWorld: bool):
@@ -353,11 +356,13 @@ class RaycastHandler:
         self.physics_environment = physics_environment
         self.player: AgentController = player
 
+    def clear_raycasts(self):
+        self.ray_casts.clear()
+
     def create_raycast(self, start: tuple, end: tuple, radius):
         """
         Create a single raycast and the list
 
-        :param physics_environment: Reference to the environment
         :param start: Start of the cast
         :param end: End of the cast
         :param radius: Radius around the cast to consider collided
@@ -473,13 +478,13 @@ class RaycastHandler:
                              self.player.get_position().get_distance(self.ray_casts[6][0].point) if self.ray_casts[6][0] is not None else None,
                              self.player.get_position().get_distance(self.ray_casts[7][0].point) if self.ray_casts[7][0] is not None else None]
 
-        # Clear rays from list after 8 have been created
-        if len(self.ray_casts) > 8:
-            self.ray_casts.clear()
+        return ray_hit_distances
 
-    def draw_raycasts(self):
+    def draw_raycasts(self, show_hit_point: bool):
         """
         Draw the raycasts to the screen to see if they are working correctly
+
+        :param show_hit_point: Whether or not we should show the point of contact of the rays
 
         :return: None
         """
@@ -495,5 +500,5 @@ class RaycastHandler:
                              line_width=1)
 
             # Draw the hit point of the ray
-            if ray[0] is not None:
+            if ray[0] is not None and show_hit_point:
                 arcade.draw_point(ray[0].point.x, ray[0].point.y, arcade.color.RED, 10)

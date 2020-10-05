@@ -43,21 +43,39 @@ class VirtualEnvironment(arcade.Window):
                                                       simulation_accuracy=45,
                                                       step_length=0.01)
 
-        # Create the dynamic player object
-        self.player: AgentController = AgentController(physics_environment=self.physics_environment,
-                                                       screen_width=SCREEN_WIDTH,
-                                                       screen_height=SCREEN_HEIGHT)
+
 
         # Manager to manage all static objects in the simulation
         self.StaticObjectManager = EnvironmentGameObjects(physics_environment=self.physics_environment,
                                                           screen_width=SCREEN_WIDTH,
                                                           screen_height=SCREEN_HEIGHT)
 
+        # Create the dynamic player object
+        self.player: AgentController = AgentController(physics_environment=self.physics_environment,
+                                                       screen_width=SCREEN_WIDTH,
+                                                       screen_height=SCREEN_HEIGHT)
+
         self.raycast_handler = RaycastHandler(physics_environment=self.physics_environment,
                                               player=self.player)
 
+        # Create a handler for general static object collisions
+        self.physics_environment.createCollisionHandler(firstCollisionType=CollisionType.STATIC_OBJECT,
+                                                        secondCollisionType=CollisionType.DYNAMIC_OBJECT,
+                                                        callback=self.player.on_static_collision)
+
+        # Create handler for collisions with goal
+        self.physics_environment.createCollisionHandler(firstCollisionType=CollisionType.GOAL_OBJECT,
+                                                        secondCollisionType=CollisionType.DYNAMIC_OBJECT,
+                                                        callback=self.player.on_goal_collision)
+
+
+
+        self.player.set_raycast_handler(self.raycast_handler)
+        self.player.reset()
+
         # Which action is being taken
         self.movement_values = [False, False, False, False]
+        self.total_reward = 0
 
 
     def on_draw(self):
@@ -69,7 +87,7 @@ class VirtualEnvironment(arcade.Window):
         self.StaticObjectManager.draw_environment_objects()
 
         # Draw the raycasts being cast
-        self.raycast_handler.draw_raycasts()
+        self.raycast_handler.draw_raycasts(show_hit_point=True)
 
         # Draw the player object
         self.player.draw()
@@ -111,20 +129,36 @@ class VirtualEnvironment(arcade.Window):
         if symbol == Keymap.Down.value:
             self.movement_values[3] = False
 
-    def on_update(self, delta_time: float):
-        """Called when the game tries to update"""
-
-        self.physics_environment.simulateStep()
-
-        self.raycast_handler.calculate_multiraycast()
-        self.player.control(self.movement_values, TEST_CONTROL_SPEED)
-        self.player.apply_damping(dt=delta_time)
-
-
     def debug(self):
         """Temporary Debug Method"""
         pass
 
+    def step(self, action: tuple):
+        """
+        Simulation Step, replaces on_update for a manually controlled step as opposed to based on what the simulation clock is doing
+
+        :param action: The action in the form of tuple shaped like (left_power, right_power) to supply to the agent
+
+        :return: Observation, Step Reward, Episode Completion Status
+        """
+        # Clear casts at at the beginning of update
+        self.player.raycast_handler.clear_raycasts()
+
+        self.physics_environment.simulateStep()
+
+        obs, reward, done = self.player.step(action=action)
+
+        self.player.apply_damping(dt=self.physics_environment.step_length)
+
+        return obs,reward,done
+
+    def reset(self):
+        """
+        Wrapper for player reset inside the environment
+
+        :return: Observation at reset
+        """
+        return self.player.reset()
 
     def startEnvironment(self):
         """
